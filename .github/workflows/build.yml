@@ -15,43 +15,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Fix overlay file
-        run: |
-          echo "=== Fixing k30.overlay ==="
-          OVERLAY_FILE="config/boards/shields/k30/k30.overlay"
-          if [ -f "$OVERLAY_FILE" ]; then
-            cp "$OVERLAY_FILE" "${OVERLAY_FILE}.backup"
-            sed -i '/compatible = "zmk,kscan-gpio-matrix";/a\\t\tlabel = "KSCAN";' "$OVERLAY_FILE"
-            echo "Overlay file fixed"
-          else
-            echo "ERROR: k30.overlay not found!"
-            exit 1
-          fi
-
-      - name: Fix keymap keycodes
-        run: |
-          echo "=== Fixing keymap keycodes ==="
-          KEYMAP_FILE="config/boards/shields/k30/k30.keymap"
-          if [ -f "$KEYMAP_FILE" ]; then
-            cp "$KEYMAP_FILE" "${KEYMAP_FILE}.backup"
-            # 修复键码名称
-            sed -i 's/&kp NUM_LOCK/&kp NLCK/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N1/&kp KP_N1/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N2/&kp KP_N2/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N3/&kp KP_N3/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N4/&kp KP_N4/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N5/&kp KP_N5/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N6/&kp KP_N6/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N7/&kp KP_N7/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N8/&kp KP_N8/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N9/&kp KP_N9/g' "$KEYMAP_FILE"
-            sed -i 's/&kp N0/&kp KP_N0/g' "$KEYMAP_FILE"
-            echo "Keymap keycodes fixed"
-          else
-            echo "ERROR: k30.keymap not found!"
-            exit 1
-          fi
-
       - name: Initialize ZMK
         run: |
           west init -l config
