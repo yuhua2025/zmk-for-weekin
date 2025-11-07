@@ -10,25 +10,45 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install yaml2json
-        run: python3 -m pip install remarshal
+        uses: actions/checkout@v4  # 更新到最新版本
+        with:
+          submodules: recursive
+          
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq python3-pip
+          python3 -m pip install remarshal
+          
       - id: set-matrix
         name: Fetch Build Matrix
         run: |
-          matrix=$(yaml2json build.yaml | jq -c .)
-          yaml2json build.yaml
-          echo "::set-output name=matrix::${matrix}"
+          if [ -f build.yaml ]; then
+            matrix=$(yaml2json build.yaml | jq -c .)
+            echo "matrix=${matrix}" >> $GITHUB_OUTPUT
+          else
+            echo "Error: build.yaml not found"
+            ls -la
+            exit 1
+          fi
+
   build:
     runs-on: ubuntu-latest
     container:
       image: zmkfirmware/zmk-build-arm:stable
+      options: --user root
     needs: matrix
-    name: Build
+    name: Build ${{ matrix.shield || matrix.board }}
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.matrix.outputs.matrix)}}
+    
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          
       - name: Prepare variables
         id: variables
         run: |
@@ -37,19 +57,22 @@ jobs:
             ARTIFACT_NAME="${{ matrix.shield }}-${{ matrix.board }}-zmk"
             DISPLAY_NAME="${{ matrix.shield }} - ${{ matrix.board }}"
           else
-            EXTRA_CMAKE_ARGS=
-            DISPLAY_NAME="${{ matrix.board }}"
+            EXTRA_CMAKE_ARGS=""
             ARTIFACT_NAME="${{ matrix.board }}-zmk"
+            DISPLAY_NAME="${{ matrix.board }}"
           fi
-          echo ::set-output name=extra-cmake-args::${EXTRA_CMAKE_ARGS}
-          echo ::set-output name=artifact-name::${ARTIFACT_NAME}
-          echo ::set-output name=display-name::${DISPLAY_NAME}
-      - name: Checkout
-        uses: actions/checkout@v2
+          
+          # 添加调试信息
+          echo "Board: ${{ matrix.board }}"
+          echo "Shield: ${{ matrix.shield }}"
+          echo "CMake Args: ${{ matrix.cmake-args }}"
+          
+          echo "extra-cmake-args=${EXTRA_CMAKE_ARGS}" >> $GITHUB_OUTPUT
+          echo "artifact-name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
+          echo "display-name=${DISPLAY_NAME}" >> $GITHUB_OUTPUT
+
       - name: Cache west modules
         uses: actions/cache@v4
-        env:
-          cache-name: cache-zephyr-modules
         with:
           path: |
             modules/
@@ -57,36 +80,62 @@ jobs:
             zephyr/
             bootloader/
             zmk/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('manifest-dir/west.yml') }}
+            .west/
+          key: ${{ runner.os }}-zmk-${{ hashFiles('west.yml') }}-${{ github.sha }}
           restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
+            ${{ runner.os }}-zmk-${{ hashFiles('west.yml') }}-
+            ${{ runner.os }}-zmk-
+
       - name: West Init
-        run: west init -l config
-      - name: West Update
-        run: west update
-      - name: West Zephyr export
-        run: west zephyr-export
-      - name: show dir info
-        run: ls && ls ..
-      - name: West Build (${{ steps.variables.outputs.display-name }})
         run: |
-          west build -s zmk/app -b ${{ matrix.board }} -- -DZMK_CONFIG=${GITHUB_WORKSPACE}/config ${{ steps.variables.outputs.extra-cmake-args }} ${{ matrix.cmake-args }}
-      - name: ${{ steps.variables.outputs.display-name }} Kconfig file
-        run: cat build/zephyr/.config | grep -v "^#" | grep -v "^$"
-      - name: Rename artifacts
+          west init -l config
+          west update
+          west zephyr-export
+
+      - name: Show workspace info
         run: |
-          mkdir build/artifacts
-          if [ -f build/zephyr/zmk.uf2 ]
-          then
-            cp build/zephyr/zmk.uf2 "build/artifacts/${{ steps.variables.outputs.artifact-name }}.uf2"
-          elif [ -f build/zephyr/zmk.hex ]
-          then
-            cp build/zephyr/zmk.hex "build/artifacts/${{ steps.variables.outputs.artifact-name }}.hex"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          ls -la
+          echo "Parent directory:"
+          ls -la ..
+
+      - name: Build Firmware
+        run: |
+          echo "Building for board: ${{ matrix.board }}"
+          echo "Extra CMake args: ${{ steps.variables.outputs.extra-cmake-args }}"
+          
+          # 创建构建目录并构建
+          west build -s zmk/app -b ${{ matrix.board }} -- \
+            -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
+            ${{ steps.variables.outputs.extra-cmake-args }} \
+            ${{ matrix.cmake-args }}
+
+      - name: Show Kconfig
+        run: |
+          if [ -f build/zephyr/.config ]; then
+            cat build/zephyr/.config | grep -v "^#" | grep -v "^$" || echo "No Kconfig found or empty"
+          else
+            echo "Kconfig file not found"
+            ls -la build/zephyr/ || echo "Build directory not found"
           fi
-      - name: Archive (${{ steps.variables.outputs.display-name }})
+
+      - name: Prepare artifacts
+        run: |
+          mkdir -p build/artifacts
+          if [ -f build/zephyr/zmk.uf2 ]; then
+            echo "Found UF2 file"
+            cp build/zephyr/zmk.uf2 "build/artifacts/${{ steps.variables.outputs.artifact-name }}.uf2"
+          elif [ -f build/zephyr/zmk.hex ]; then
+            echo "Found HEX file"
+            cp build/zephyr/zmk.hex "build/artifacts/${{ steps.variables.outputs.artifact-name }}.hex"
+          else
+            echo "No firmware file found!"
+            ls -la build/zephyr/ || echo "Build directory not accessible"
+            exit 1
+          fi
+
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: firmware
-          path: build/artifacts
+          name: ${{ steps.variables.outputs.artifact-name }}
+          path: build/artifacts/*
