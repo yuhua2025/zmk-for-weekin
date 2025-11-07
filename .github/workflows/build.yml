@@ -1,54 +1,30 @@
-name: Build ZMK Firmware
-
-on: [push, pull_request, workflow_dispatch]
-
+name: Build ZMK
+on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: zmkfirmware/zmk-build-arm:stable
-      options: --user root
-
+    container: zmkfirmware/zmk-build-arm:stable
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Create minimal keymap
-        run: |
-          mkdir -p config/boards/shields/k30
-          cat > config/boards/shields/k30/k30.keymap << 'EOF'
-#include <behaviors.dtsi>
-#include <dt-bindings/zmk/keys.h>
-
-/ {
-    keymap {
-        compatible = "zmk,keymap";
-        default_layer {
-            bindings = <
-                &kp A &kp B
-            >;
-        };
-    };
-};
-EOF
-
-      - name: Initialize ZMK
-        run: |
-          west init -l config
-          west update
-          west zephyr-export
-
-      - name: Build firmware
-        run: |
-          west build -b nrfmicro_13 -s zmk/app -- \
-            -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
-            -DSHIELD=k30
-
-      - name: Upload firmware
-        if: success()
-        uses: actions/upload-artifact@v4
+      - run: west init -l config
+      - run: west update
+      - run: west zephyr-export
+      - run: mkdir -p config/boards/shields/k30
+      - run: echo '#include <behaviors.dtsi>' > config/boards/shields/k30/k30.keymap
+      - run: echo '#include <dt-bindings/zmk/keys.h>' >> config/boards/shields/k30/k30.keymap
+      - run: echo '' >> config/boards/shields/k30/k30.keymap
+      - run: echo '/' >> config/boards/shields/k30/k30.keymap
+      - run: echo '  keymap {' >> config/boards/shields/k30/k30.keymap
+      - run: echo '    compatible = "zmk,keymap";' >> config/boards/shields/k30/k30.keymap
+      - run: echo '    default_layer {' >> config/boards/shields/k30/k30.keymap
+      - run: echo '      bindings = < &kp A &kp B >;' >> config/boards/shields/k30/k30.keymap
+      - run: echo '    };' >> config/boards/shields/k30/k30.keymap
+      - run: echo '  };' >> config/boards/shields/k30/k30.keymap
+      - run: echo '};' >> config/boards/shields/k30/k30.keymap
+      - run: west build -b nrfmicro_13 -s zmk/app -- -DZMK_CONFIG="$GITHUB_WORKSPACE/config" -DSHIELD=k30
+      - uses: actions/upload-artifact@v4
         with:
-          name: k30-nrfmicro_13-firmware
+          name: firmware
           path: build/zephyr/zmk.uf2
