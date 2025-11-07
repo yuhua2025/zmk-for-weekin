@@ -49,6 +49,7 @@ jobs:
           KEYMAP_FILE="config/boards/shields/k30/k30.keymap"
           cp "$KEYMAP_FILE" "${KEYMAP_FILE}.backup"
           
+          # 逐个修复键码，避免复杂的sed命令
           sed -i 's/&kp NUM_LOCK/&kp NLCK/g' "$KEYMAP_FILE"
           sed -i 's/&kp N1/&kp KP_N1/g' "$KEYMAP_FILE"
           sed -i 's/&kp N2/&kp KP_N2/g' "$KEYMAP_FILE"
@@ -60,27 +61,23 @@ jobs:
           sed -i 's/&kp N8/&kp KP_N8/g' "$KEYMAP_FILE"
           sed -i 's/&kp N9/&kp KP_N9/g' "$KEYMAP_FILE"
           sed -i 's/&kp N0/&kp KP_N0/g' "$KEYMAP_FILE"
-          sed -i 's/&kp FSLH/&kp KP_SLASH/g' "$KEYMAP_FILE"
-          sed -i 's/&kp STAR/&kp KP_ASTERISK/g' "$KEYMAP_FILE"
-          sed -i 's/&kp MINUS/&kp KP_MINUS/g' "$KEYMAP_FILE"
           
           echo "Keymap file fixed"
 
       - name: Create minimal keymap
         run: |
           echo "=== Creating minimal keymap ==="
-          cat > config/boards/shields/k30/k30.keymap.minimal << 'EOF'
-#include <behaviors.dtsi>
-#include <dt-bindings/zmk/keys.h>
-/ {
-    keymap {
-        compatible = "zmk,keymap";
-        default_layer {
-            bindings = < &kp A &kp B &kp C >;
-        };
-    };
-};
-EOF
+          mkdir -p config/boards/shields/k30
+          echo '#include <behaviors.dtsi>' > config/boards/shields/k30/k30.keymap.minimal
+          echo '#include <dt-bindings/zmk/keys.h>' >> config/boards/shields/k30/k30.keymap.minimal
+          echo '/' >> config/boards/shields/k30/k30.keymap.minimal
+          echo '  keymap {' >> config/boards/shields/k30/k30.keymap.minimal
+          echo '    compatible = "zmk,keymap";' >> config/boards/shields/k30/k30.keymap.minimal
+          echo '    default_layer {' >> config/boards/shields/k30/k30.keymap.minimal
+          echo '      bindings = < &kp A &kp B &kp C >;' >> config/boards/shields/k30/k30.keymap.minimal
+          echo '    };' >> config/boards/shields/k30/k30.keymap.minimal
+          echo '  };' >> config/boards/shields/k30/k30.keymap.minimal
+          echo '};' >> config/boards/shields/k30/k30.keymap.minimal
 
       - name: Initialize ZMK environment
         run: |
@@ -106,13 +103,8 @@ EOF
           elif [ -f "build/zephyr/zmk.hex" ]; then
             echo "HEX firmware generated successfully"
             ls -lh build/zephyr/zmk.hex
-          elif [ -f "build/zephyr/zephyr.bin" ]; then
-            echo "BIN firmware generated successfully"
-            ls -lh build/zephyr/zephyr.bin
           else
             echo "No firmware files found!"
-            echo "Build directory contents:"
-            find build/ -type f | head -20
             exit 1
           fi
 
@@ -126,8 +118,6 @@ EOF
           if [ -f "build/zephyr/zmk.hex" ]; then
             cp build/zephyr/zmk.hex artifacts/k30-nrfmicro_13.hex
           fi
-          echo "Artifacts created:"
-          ls -la artifacts/
 
       - name: Upload firmware artifacts
         uses: actions/upload-artifact@v4
