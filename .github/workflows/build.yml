@@ -39,10 +39,12 @@ jobs:
       image: zmkfirmware/zmk-build-arm:stable
       options: --user root
     needs: matrix
-    name: Build ${{ matrix.shield || matrix.board }}
+    name: Build Keyboard
+    # 修复策略部分 - 使用正确的矩阵格式
     strategy:
+      matrix:
+        include: ${{ fromJson(needs.matrix.outputs.matrix) }}
       fail-fast: false
-      matrix: ${{ fromJson(needs.matrix.outputs.matrix) }}
     
     steps:
       - name: Checkout
@@ -94,7 +96,7 @@ jobs:
           echo "Building for board: ${{ matrix.board }}"
           echo "With shield: ${{ matrix.shield }}"
           
-          # 正确的构建命令 - 不使用 -v 参数
+          # 正确的构建命令
           west build -b ${{ matrix.board }} -s zmk/app -- \
             -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
             -DSHIELD=${{ matrix.shield }} \
