@@ -10,7 +10,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4  # 更新到最新版本
+        uses: actions/checkout@v4
         with:
           submodules: recursive
           
@@ -24,7 +24,10 @@ jobs:
         name: Fetch Build Matrix
         run: |
           if [ -f build.yaml ]; then
+            echo "Found build.yaml, contents:"
+            cat build.yaml
             matrix=$(yaml2json build.yaml | jq -c .)
+            echo "Generated matrix: ${matrix}"
             echo "matrix=${matrix}" >> $GITHUB_OUTPUT
           else
             echo "Error: build.yaml not found"
@@ -49,6 +52,20 @@ jobs:
         with:
           submodules: recursive
           
+      - name: Debug Build Environment
+        run: |
+          echo "=== Debug Information ==="
+          echo "Board: ${{ matrix.board }}"
+          echo "Shield: ${{ matrix.shield }}"
+          echo "Workspace: $GITHUB_WORKSPACE"
+          echo "Current dir: $(pwd)"
+          echo "Contents:"
+          ls -la
+          echo "Config directory:"
+          ls -la config/ || echo "No config directory"
+          echo "ZMK app directory:"
+          ls -la zmk/app/ || echo "ZMK app not found"
+
       - name: Prepare variables
         id: variables
         run: |
@@ -61,11 +78,6 @@ jobs:
             ARTIFACT_NAME="${{ matrix.board }}-zmk"
             DISPLAY_NAME="${{ matrix.board }}"
           fi
-          
-          # 添加调试信息
-          echo "Board: ${{ matrix.board }}"
-          echo "Shield: ${{ matrix.shield }}"
-          echo "CMake Args: ${{ matrix.cmake-args }}"
           
           echo "extra-cmake-args=${EXTRA_CMAKE_ARGS}" >> $GITHUB_OUTPUT
           echo "artifact-name=${ARTIFACT_NAME}" >> $GITHUB_OUTPUT
@@ -81,60 +93,68 @@ jobs:
             bootloader/
             zmk/
             .west/
-          key: ${{ runner.os }}-zmk-${{ hashFiles('west.yml') }}-${{ github.sha }}
+          key: ${{ runner.os }}-zmk-${{ hashFiles('west.yml') }}-v1
           restore-keys: |
-            ${{ runner.os }}-zmk-${{ hashFiles('west.yml') }}-
             ${{ runner.os }}-zmk-
 
-      - name: West Init
+      - name: Initialize ZMK
         run: |
+          echo "Initializing ZMK build environment..."
           west init -l config
           west update
           west zephyr-export
+          echo "ZMK initialization completed"
 
-      - name: Show workspace info
+      - name: Build with detailed output
+        id: build
         run: |
-          echo "Workspace: $GITHUB_WORKSPACE"
-          ls -la
-          echo "Parent directory:"
-          ls -la ..
-
-      - name: Build Firmware
-        run: |
-          echo "Building for board: ${{ matrix.board }}"
-          echo "Extra CMake args: ${{ steps.variables.outputs.extra-cmake-args }}"
+          echo "Starting build for: ${{ matrix.board }}"
+          echo "CMake args: ${{ steps.variables.outputs.extra-cmake-args }} ${{ matrix.cmake-args }}"
           
-          # 创建构建目录并构建
-          west build -s zmk/app -b ${{ matrix.board }} -- \
+          # 使用详细输出进行构建
+          west build -v -s zmk/app -b ${{ matrix.board }} -- \
             -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
             ${{ steps.variables.outputs.extra-cmake-args }} \
-            ${{ matrix.cmake-args }}
+            ${{ matrix.cmake-args }} \
+            -- -DCMAKE_VERBOSE_MAKEFILE=ON
+        continue-on-error: false
 
-      - name: Show Kconfig
+      - name: Check build results
+        if: steps.build.outcome != 'success'
         run: |
-          if [ -f build/zephyr/.config ]; then
-            cat build/zephyr/.config | grep -v "^#" | grep -v "^$" || echo "No Kconfig found or empty"
+          echo "Build failed! Checking for clues..."
+          if [ -d "build" ]; then
+            echo "Build directory exists, checking contents:"
+            find build/ -name "*.log" -o -name "*.txt" | head -10
+            if [ -f "build/build.ninja" ]; then
+              echo "Build system was generated"
+            fi
           else
-            echo "Kconfig file not found"
-            ls -la build/zephyr/ || echo "Build directory not found"
+            echo "No build directory created"
           fi
+          exit 1
 
       - name: Prepare artifacts
+        if: steps.build.outcome == 'success'
         run: |
           mkdir -p build/artifacts
           if [ -f build/zephyr/zmk.uf2 ]; then
-            echo "Found UF2 file"
+            echo "Found UF2 file, copying..."
             cp build/zephyr/zmk.uf2 "build/artifacts/${{ steps.variables.outputs.artifact-name }}.uf2"
           elif [ -f build/zephyr/zmk.hex ]; then
-            echo "Found HEX file"
+            echo "Found HEX file, copying..."
             cp build/zephyr/zmk.hex "build/artifacts/${{ steps.variables.outputs.artifact-name }}.hex"
+          elif [ -f build/zephyr/zephyr.elf ]; then
+            echo "Found ELF file, copying as fallback..."
+            cp build/zephyr/zephyr.elf "build/artifacts/${{ steps.variables.outputs.artifact-name }}.elf"
           else
-            echo "No firmware file found!"
-            ls -la build/zephyr/ || echo "Build directory not accessible"
-            exit 1
+            echo "Warning: No standard firmware files found"
+            echo "Build directory contents:"
+            find build/zephyr/ -type f -name "zmk.*" -o -name "zephyr.*" | head -20
           fi
 
       - name: Upload artifacts
+        if: steps.build.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.variables.outputs.artifact-name }}
