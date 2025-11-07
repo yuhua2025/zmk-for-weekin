@@ -47,7 +47,8 @@ EOF
             -DSHIELD=k30
 
       - name: Upload firmware
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: firmware
+          name: k30-nrfmicro_13-firmware
           path: build/zephyr/zmk.uf2
