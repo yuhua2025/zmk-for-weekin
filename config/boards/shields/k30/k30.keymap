@@ -66,8 +66,8 @@
         fn_layer {
             bindings = <
                 &trans        &trans          &trans         &trans
-                &trans        &trans          &trans         &kp C_VOL_DN
-                &trans        &trans          &trans         &kp C_VOL_UP
+                &trans        &trans          &trans         &cp vol_down
+                &trans        &trans          &trans         &cp vol_up
                 &trans        &trans          &trans         &trans  
                 &bt BT_SEL 0  &bt BT_SEL 1    &bt BT_SEL 2   &bootloader
                 &bt BT_CLR    &kp DEL
