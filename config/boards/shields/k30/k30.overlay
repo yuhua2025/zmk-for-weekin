@@ -12,24 +12,6 @@
 		zmk,matrix_transform = &default_transform;
 	};
 
-	/* 蓝牙状态 LED 配置 */
-	leds {
-		compatible = "gpio-leds";
-		blue_led: led_0 {
-			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
-			label = "Blue LED";
-		};
-	};
-
-	/* 添加蓝牙行为配置 */
-	behaviors {
-		bluetooth: bluetooth {
-			compatible = "zmk,behavior-bluetooth";
-			label = "BLUETOOTH";
-			#binding-cells = <2>;
-		};
-	};
-
 	default_transform: keymap_transform_0 {
 		compatible = "zmk,matrix-transform";
 		columns = <4>;
@@ -65,6 +47,21 @@
 			, <&gpio1 6 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
 			;
 	};
+
+	/* 添加功率 LED 节点 */
+	pwr_led: pwr_led {
+		compatible = "gpio-leds";
+		label = "Power LED";
+		led_0: led_0 {
+			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+			label = "Power LED";
+		};
+	};
+};
+
+/* 在 chosen 节点中引用功率 LED */
+&pwr_led {
+	status = "okay";
 };
 
 &gpio0 {
