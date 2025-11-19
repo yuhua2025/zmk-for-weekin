@@ -3,7 +3,6 @@
 #include <zmk/events/ble_connected_state_changed.h>
 #include <drivers/led.h>
 #include <zmk/ble.h>
-#include <zmk/event_manager.h>
 
 static const struct device *bt_led_dev = DEVICE_DT_GET(DT_NODELABEL(bt_status_led));
 
@@ -18,7 +17,7 @@ static int on_ble_connected_state_changed(const zmk_event_t *eh) {
         // 蓝牙已连接 - LED常亮
         led_on(bt_led_dev);
     } else {
-        // 蓝牙未连接 - LED以500ms间隔闪烁
+        // 蓝牙未连接 - LED闪烁
         led_blink(bt_led_dev, 500, 500);
     }
     return 0;
