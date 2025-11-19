@@ -15,17 +15,17 @@
 	leds {
         compatible = "gpio-leds";
         bt_led: bt_led {
-            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;  // 确认P1.10正确
             label = "BT Status LED";
         };
     };
 
-    // 尝试使用ZMK的标准行为
+    // 蓝牙状态指示器配置
     behaviors {
-        led_control: led_control {
-            compatible = "zmk,behavior-led";
+        bluetooth_led_behavior: bluetooth_led_behavior {
+            compatible = "zmk,behavior-bluetooth-led";
             #binding-cells = <0>;
-            led = <&bt_led>;
+            led-device = <&bt_led>;
         };
     };
 
