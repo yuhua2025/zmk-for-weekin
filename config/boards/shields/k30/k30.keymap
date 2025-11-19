@@ -37,6 +37,18 @@
             wait-ms = <10>;
         };
 
+       // 这是一个测试行为：按下按键时点亮LED，松开时熄灭
+        test_led: test_led {
+            compatible = "zmk,behavior-macro";
+            label = "TEST_LED";
+            #binding-cells = <0>;
+            bindings = <
+                &gpio_out GPIO1_10 1  // 点亮LED (设置引脚为高电平)
+                ...,                  // 可以添加其他动作
+                &gpio_out GPIO1_10 0  // 熄灭LED (设置引脚为低电平)
+            >;
+        };
+
     };
     
     
@@ -68,7 +80,7 @@
                 &trans        &trans          &trans         &trans
                 &trans        &trans          &trans         &kp K_VOLUME_DOWN
                 &trans        &trans          &trans         &kp K_VOLUME_UP
-                &trans        &trans          &trans         &trans  
+                &trans        &TEST_LED          &trans         &trans  
                 &bt BT_SEL 0  &bt BT_SEL 1    &bt BT_SEL 2   &bootloader
                 &bt BT_CLR    &kp DEL
             >;
