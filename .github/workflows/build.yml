@@ -10,43 +10,24 @@ jobs:
       options: --user root
 
     steps:
-      - name: Checkout repository
+      - name: Checkout your repo (to get your k30 config)
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Initialize ZMK and upgrade to latest main
+      - name: Clone official latest ZMK
         run: |
-          # Step 1: 初始化本地 manifest
-          west init -l config
-          
-          # Step 2: 拉取初始版本（含 zephyr 等）
-          west update
-          
-          # Step 3: 导出 Zephyr 环境（第一次）
-          west zephyr-export
-
-          # Step 4: 强制升级 ZMK app 到官方最新 main
-          cd zmk/app
-          git remote add origin https://github.com/zmkfirmware/zmk.git || true
-          git fetch origin
-          git checkout main
-          git pull origin main
-
-          # Step 5: 再次更新子模块（可能 ZMK main 引用了新版本 zephyr）
-          west update
-
-          # Step 6: 重新导出 Zephyr 环境（关键！）
-          west zephyr-export
+          git clone --recursive https://github.com/zmkfirmware/zmk.git
+          # Copy your shield config into ZMK
+          mkdir -p zmk/app/boards/shields/k30
+          cp -r config/boards/shields/k30/* zmk/app/boards/shields/k30/
 
       - name: Build firmware
+        working-directory: zmk/app
         run: |
-          west build -b nrfmicro_13 -s zmk/app -- \
-            -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
+          west build -b nrfmicro_13 -- \
             -DSHIELD=k30
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: k30-full-firmware
-          path: build/zephyr/zmk.uf2
+          path: zmk/app/build/zephyr/zmk.uf2
