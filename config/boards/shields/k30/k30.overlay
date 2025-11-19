@@ -1,6 +1,9 @@
 /*
  * Copyright (c) 2020 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
  */
+
 #include <dt-bindings/zmk/matrix_transform.h>
 
 / {
@@ -9,21 +12,10 @@
         zmk,matrix_transform = &default_transform;
     };
 
-    // 蓝牙状态LED配置 - 确保标签唯一
-    k30_bt_led: k30_bt_led {
-        compatible = "gpio-leds";
-        bt_led: bt_led {
-            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>; // 请确认GPIO引脚正确
-            label = "BT Status LED";
-        };
-    };
-
-    // 可以尝试使用ZMK内置的蓝牙指示器（根据版本可能支持）
-    ble_indicators {
-        compatible = "zmk,ble-ble-indicators";
-        bt_indicator: bt_indicator {
-            led = <&bt_led>; // 指向上面定义好的唯一LED
-        };
+    // 蓝牙状态LED配置 - 最简单的定义
+    bluetooth {
+        compatible = "zmk,bluetooth";
+        status-leds = <&gpio1 10 GPIO_ACTIVE_HIGH>;
     };
 
     default_transform: keymap_transform_0 {
@@ -39,25 +31,25 @@
             RC(5,0) RC(5,1)
         >;
     };
-
+    
     kscan0: kscan {
         compatible = "zmk,kscan-gpio-matrix";
-		label = "KSCAN";
-		wakeup-source;
-		diode-direction = "col2row";
-		col-gpios
-			= <&gpio0 29 GPIO_ACTIVE_HIGH>
-			, <&gpio0 2 GPIO_ACTIVE_HIGH>
-			, <&gpio1 13 GPIO_ACTIVE_HIGH>
-			, <&gpio1 11 GPIO_ACTIVE_HIGH>  // COL4 - 蓝色LED控制引脚
-			;
-		row-gpios
-			= <&gpio0 22 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-			, <&gpio0 24 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-			, <&gpio1 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-			, <&gpio1 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-			, <&gpio1 4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-			, <&gpio1 6 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-			;
-	};
+        label = "KSCAN";
+        wakeup-source;
+        diode-direction = "col2row";
+        col-gpios
+            = <&gpio0 29 GPIO_ACTIVE_HIGH>
+            , <&gpio0 2 GPIO_ACTIVE_HIGH>
+            , <&gpio1 13 GPIO_ACTIVE_HIGH>
+            , <&gpio1 11 GPIO_ACTIVE_HIGH>
+            ;
+        row-gpios
+            = <&gpio0 22 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio0 24 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 6 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            ;
+    };
 };
