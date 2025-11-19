@@ -38,36 +38,18 @@
 			wait-ms = <10>;
 		};
 
-	behaviors {
-	    led_indicator: led_indicator {
-	        compatible = "zmk,behavior-led-indicator";
-	        #binding-cells = <0>;
-	        label = "LED_INDICATOR";
-	    };
+		// 蓝牙LED行为
+		bt_led_behavior: bt_led_behavior {
+			compatible = "zmk,behavior-bt-led";
+			#binding-cells = <0>;
+			label = "BT_LED_BEHAVIOR";
+		};
 	};
-	
-	keymap {
-	    default_layer {
-	        bindings = <
-	            &led_indicator  // 绑定LED指示行为
-	            // 其他按键绑定...
-	        >;
-	    };
-
 
 	keymap {
 		compatible = "zmk,keymap";
 
 		default_layer {
-		/*
-		----------------------------------------------
-		|    COPY    |     PASTE    |     CUT      |    BSPC    |
-		|     FN     |      /       |      *       |     -      |
-		|     7      |      8       |      9       |     +      |
-		|     4      |      5       |      6       |    TAP     |
-		|     1      |      2       |      3       |    ENTER   |
-		|     0      |      .       |
-		*/
 			bindings = <
 				&macro_copy   &macro_paste    &macro_cut     &kp BSPC
 				&mo 1         &kp KP_SLASH      &kp KP_ASTERISK &kp KP_MINUS
