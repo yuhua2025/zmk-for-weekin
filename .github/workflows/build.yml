@@ -13,21 +13,32 @@ jobs:
       - name: Checkout your repo (to get your k30 config)
         uses: actions/checkout@v4
 
-      - name: Clone official latest ZMK
+      - name: Clone and set up official ZMK
         run: |
-          git clone --recursive https://github.com/zmkfirmware/zmk.git
-          # Copy your shield config into ZMK
-          mkdir -p zmk/app/boards/shields/k30
-          cp -r config/boards/shields/k30/* zmk/app/boards/shields/k30/
+          # 1. 克隆官方 ZMK
+          git clone https://github.com/zmkfirmware/zmk.git
+          cd zmk
+
+          # 2. 初始化 West workspace using ZMK's app as manifest
+          west init -l app
+
+          # 3. 拉取所有依赖（zephyr, modules, etc.）
+          west update
+
+          # 4. 导出 Zephyr 环境
+          west zephyr-export
+
+          # 5. 注入你的 shield 配置
+          mkdir -p app/boards/shields/k30
+          cp -r "$GITHUB_WORKSPACE/config/boards/shields/k30"/* app/boards/shields/k30/
 
       - name: Build firmware
-        working-directory: zmk/app
+        working-directory: zmk
         run: |
-          west build -b nrfmicro_13 -- \
-            -DSHIELD=k30
+          west build -b nrfmicro_13 -s app -- -DSHIELD=k30
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: k30-full-firmware
-          path: zmk/app/build/zephyr/zmk.uf2
+          path: zmk/build/zephyr/zmk.uf2
