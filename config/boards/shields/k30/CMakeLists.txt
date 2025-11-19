@@ -1,1 +1,0 @@
-target_sources(app PRIVATE bt_led_behavior.c)
