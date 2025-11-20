@@ -12,13 +12,11 @@
 	};
     
 	// 添加LED定义
-	leds {
-		compatible = "gpio-leds";
-		blue_led: led_0 {
-			gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
-			label = "Blue LED";
-		};
-	};
+    leds {
+        compatible = "gpio-leds";
+        blue_led: led_0 {
+        gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;
+    };
 	
 	default_transform: keymap_transform_0 {
 		compatible = "zmk,matrix-transform";
