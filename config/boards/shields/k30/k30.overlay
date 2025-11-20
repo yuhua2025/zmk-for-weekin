@@ -16,12 +16,12 @@
 
     led: led_blue {
         label = "LED_BLUE";
-        gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;  // LED 控制引脚
+        gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;  // 蓝牙状态 LED 控制引脚
         default-state = "off";  // 默认关闭
     };
     
     chosen {
-        zmk,bt-led = &led;  // 绑定蓝牙 LED 控制
+        zmk,bt-led = &led;  // 蓝牙 LED 控制
     };
 
     default_transform: keymap_transform_0 {
