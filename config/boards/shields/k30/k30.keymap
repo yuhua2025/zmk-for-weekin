@@ -4,53 +4,43 @@
 
 / {
     behaviors {
-        // Ctrl+C 复制宏
         macro_copy: behavior_macro_copy {
             compatible = "zmk,behavior-macro";
             label = "MACRO_COPY";
             #binding-cells = <0>;
-            bindings = <
-                &kp LC(C)
-            >;
+            bindings = < &kp LC(C) >;
             wait-ms = <10>;
         };
         
-        // Ctrl+V 粘贴宏
         macro_paste: behavior_macro_paste {
             compatible = "zmk,behavior-macro";
             label = "MACRO_PASTE";
             #binding-cells = <0>;
-            bindings = <
-                &kp LC(V)
-            >;
+            bindings = < &kp LC(V) >;
             wait-ms = <10>;
         };
         
-        // Ctrl+X 剪切宏
         macro_cut: behavior_macro_cut {
             compatible = "zmk,behavior-macro";
             label = "MACRO_CUT";
             #binding-cells = <0>;
-            bindings = <
-                &kp LC(X)
-            >;
+            bindings = < &kp LC(X) >;
             wait-ms = <10>;
         };
     };
 
-    // ===== 新增：蓝牙状态 LED 定义 =====
-    led_indicators {
+    // ✅ 关键修复：节点名必须是 "leds"，不是 "led_indicators"
+    leds {
         compatible = "zmk,led-indicators";
-        label = "BT_LED_INDICATOR";
+        label = "BT_LED";
 
         bt_conn_led: bt_conn {
-            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;  // 若灯逻辑相反，请改为 GPIO_ACTIVE_LOW
+            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;  // 已验证高电平点亮
             color = <0xffffff>;
-            max-brightness = <255>;
+            max-brightness = <64>;  // 降低亮度，省电且可见
         };
     };
 
-    // ===== chosen 节点合并（包含原 overlay 内容 + LED 绑定）=====
     chosen {
         zmk,kscan = &kscan0;
         zmk,matrix_transform = &default_transform;
