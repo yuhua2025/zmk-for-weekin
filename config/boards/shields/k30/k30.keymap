@@ -29,25 +29,6 @@
         };
     };
 
-    // ✅ 关键修复：节点名必须是 "leds"，不是 "led_indicators"
-    leds {
-        compatible = "zmk,led-indicators";
-        label = "BT_LED";
-
-        bt_conn_led: bt_conn {
-            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>;  // 已验证高电平点亮
-            color = <0xffffff>;
-            max-brightness = <64>;  // 降低亮度，省电且可见
-        };
-    };
-
-    chosen {
-        zmk,kscan = &kscan0;
-        zmk,matrix_transform = &default_transform;
-        zmk,bt-connection-led = &bt_conn_led;
-        zmk,bt-pairing-led = &bt_conn_led;
-    };
-
     keymap {
         compatible = "zmk,keymap";
 
