@@ -41,22 +41,23 @@
         };
     };
 
-    // 定义 PWM LED 设备
-    pwmleds {
-        compatible = "pwm-leds";
+    // 定义 PWM LED 设备 和 ZMK LED 设备 在同一层级下
+    // 注意：这里只保留一个 pwmleds 节点
+    pwmleds { // <-- 这个节点名必须唯一
+        compatible = "pwm-leds"; // 或者根据实际情况可能是其他兼容字符串
 
         // 定义一个名为 backlight_led 的 LED
         backlight_led: led_0 {
             label = "backlight_led"; // LED 标签
-            pwms = <&red_pwm 0 PWM_POLARITY_INVERTED>, // 引用红色 PWM 通道
-                   <&green_pwm 0 PWM_POLARITY_INVERTED>, // 引用绿色 PWM 通道
-                   <&blue_pwm 0 PWM_POLARITY_INVERTED>; // 引用蓝色 PWM 通道
+            pwms = <&red_pwm 0 PWM_POLARITY_INVERTED>,
+                   <&green_pwm 0 PWM_POLARITY_INVERTED>,
+                   <&blue_pwm 0 PWM_POLARITY_INVERTED>;
             max-brightness = <255>; // 最大亮度值
             color = <255 255 255>; // 白色光 (RGB 255,255,255) - 这决定了混合的基础色温
         };
-    };
+    }; // <-- 结束 pwmleds 节点
 
-    // 定义 ZMK LED 设备
+    // 定义 ZMK LED 设备 (与 pwmleds 同级)
     leds {
         compatible = "zmk,leds";
 
