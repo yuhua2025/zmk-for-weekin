@@ -76,7 +76,7 @@
                 &trans        &trans          &trans         &trans
                 &trans        &trans          &trans         &kp K_VOLUME_DOWN
                 &trans        &trans          &trans         &kp K_VOLUME_UP
-                &rgb_ug RGB_TOG      &rgb_ug RGB_MODE_FORWARD   &rgb_ug RGB_MODE_REVERSE    &trans  
+                &rgb_ug RGB_TOG      &rgb_ug RGB_MODE_FORWARD   &rgb_ug RGB_BRI_DEC    &trans  
                 &rgb_ug RGB_HUI       &rgb_ug RGB_SAI            &rgb_ug RGB_BRI           &bootloader
                 &rgb_ug RGB_HUD       &rgb_ug RGB_SAD            
             >;
