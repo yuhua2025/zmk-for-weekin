@@ -1,0 +1,108 @@
+/*
+ * Copyright (c) 2020 The ZMK Contributors
+ *
+ * SPDX-License-Identifier: MIT
+ */
+
+#include <dt-bindings/zmk/matrix_transform.h>
+// 包含 PWM 和 LED 相关的设备树绑定
+#include <dt-bindings/pwm/pwm.h>
+#include <dt-bindings/gpio/gpio.h>
+
+/ {
+    chosen {
+        zmk,kscan = &kscan0;
+        zmk,matrix_transform = &default_transform;
+        // 指定 ZMK 使用的背光设备
+        zmk,backlight = &my_backlight;
+    };
+
+    // 定义 GPIO PWM 控制器节点
+    gpiopwm: pwmleds {
+        compatible = "pwm-gpio";
+        #pwm-cells = <2>; // 标准 PWM 单元需要两个单元地址参数 (<channel>, <flags>)
+
+        // 定义红色通道 PWM (连接到 P1.10)
+        red_pwm: red_pwm {
+            pwms = <&gpiopwm 0 PWM_POLARITY_INVERTED>; // 通道 0, 反相 (因为是共阴)
+            gpio = <&gpio1 10 GPIO_ACTIVE_HIGH>; // P1.10, 高电平有效
+        };
+
+        // 定义绿色通道 PWM (连接到 P0.3)
+        green_pwm: green_pwm {
+            pwms = <&gpiopwm 1 PWM_POLARITY_INVERTED>; // 通道 1, 反相
+            gpio = <&gpio0 3 GPIO_ACTIVE_HIGH>; // P0.3, 高电平有效
+        };
+
+        // 定义蓝色通道 PWM (连接到 P0.28)
+        blue_pwm: blue_pwm {
+            pwms = <&gpiopwm 2 PWM_POLARITY_INVERTED>; // 通道 2, 反相
+            gpio = <&gpio0 28 GPIO_ACTIVE_HIGH>; // P0.28, 高电平有效
+        };
+    };
+
+    // 定义 PWM LED 设备
+    pwmleds {
+        compatible = "pwm-leds";
+
+        // 定义一个名为 backlight_led 的 LED
+        backlight_led: led_0 {
+            label = "backlight_led"; // LED 标签
+            pwms = <&red_pwm 0 PWM_POLARITY_INVERTED>, // 引用红色 PWM 通道
+                   <&green_pwm 0 PWM_POLARITY_INVERTED>, // 引用绿色 PWM 通道
+                   <&blue_pwm 0 PWM_POLARITY_INVERTED>; // 引用蓝色 PWM 通道
+            max-brightness = <255>; // 最大亮度值
+            color = <255 255 255>; // 白色光 (RGB 255,255,255) - 这决定了混合的基础色温
+        };
+    };
+
+    // 定义 ZMK LED 设备
+    leds {
+        compatible = "zmk,leds";
+
+        // 定义名为 my_backlight 的 ZMK 背光设备
+        my_backlight: backlight {
+            label = "my_backlight"; // 设备标签
+            leds = <&backlight_led>; // 关联之前定义的 PWM LED
+            trigger-binding = <&none>; // 默认触发方式，通常由 ZMK 内部管理
+            // breathe-period-ms = <3000>; // 可选：设置呼吸效果周期
+            // blink-duration-ms = <500>;  // 可选：设置闪烁持续时间
+        };
+    };
+
+    // --- 保持原有的矩阵扫描配置不变 ---
+    default_transform: keymap_transform_0 {
+        compatible = "zmk,matrix-transform";
+        columns = <4>;
+        rows = <6>;
+        map = <
+            RC(0,0) RC(0,1) RC(0,2) RC(0,3)
+            RC(1,0) RC(1,1) RC(1,2) RC(1,3)
+            RC(2,0) RC(2,1) RC(2,2) RC(2,3)
+            RC(3,0) RC(3,1) RC(3,2) RC(3,3)
+            RC(4,0) RC(4,1) RC(4,2) RC(4,3)
+            RC(5,0) RC(5,1)
+        >;
+    };
+
+    kscan0: kscan {
+        compatible = "zmk,kscan-gpio-matrix";
+        label = "KSCAN";
+        wakeup-source;
+        diode-direction = "col2row";
+        col-gpios
+            = <&gpio0 29 GPIO_ACTIVE_HIGH>
+            , <&gpio0 2 GPIO_ACTIVE_HIGH>
+            , <&gpio1 13 GPIO_ACTIVE_HIGH>
+            , <&gpio1 11 GPIO_ACTIVE_HIGH>
+            ;
+        row-gpios
+            = <&gpio0 22 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio0 24 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 0 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 6 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            ;
+    };
+};
