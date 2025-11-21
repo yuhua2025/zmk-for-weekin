@@ -65,6 +65,7 @@
     // --- 结束 LED 定义 ---
 
     // --- ZMK 行为定义 ---
+    // !!! 这部分必须在 k30.overlay 中定义，不能在 .keymap 中 !!!
     behaviors {
         // 定义 LED 开启行为
         behavior_led_on {
