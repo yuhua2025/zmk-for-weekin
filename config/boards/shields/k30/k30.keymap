@@ -5,35 +5,35 @@
 
 / {
     behaviors {
-        // Ctrl+C 复制宏
+        // Command+C 复制宏 (macOS)
         macro_copy: behavior_macro_copy {
             compatible = "zmk,behavior-macro";
             label = "MACRO_COPY";
             #binding-cells = <0>;
             bindings = <
-                &kp LC(C)
+                &kp LGUI(C)
             >;
             wait-ms = <10>; // 小延迟确保组合键正确执行
         };
         
-        // Ctrl+V 粘贴宏
+        // Command+V 粘贴宏 (macOS)
         macro_paste: behavior_macro_paste {
             compatible = "zmk,behavior-macro";
             label = "MACRO_PASTE";
             #binding-cells = <0>;
             bindings = <
-                &kp LC(V)
+                &kp LGUI(V)
             >;
             wait-ms = <10>;
         };
         
-        // Ctrl+X 剪切宏
+        // Command+X 剪切宏 (macOS)
         macro_cut: behavior_macro_cut {
             compatible = "zmk,behavior-macro";
             label = "MACRO_CUT";
             #binding-cells = <0>;
             bindings = <
-                &kp LC(X)
+                &kp LGUI(X)
             >;
             wait-ms = <10>;
         };
