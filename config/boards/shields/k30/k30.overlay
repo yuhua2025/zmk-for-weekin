@@ -17,12 +17,14 @@
         zmk,backlight = &my_backlight;
     };
 
-    // 定义 GPIO PWM 控制器节点
-    gpiopwm: pwmleds {
+    // --- 1. 定义 GPIO PWM 控制器 ---
+    // 注意：这个节点名 gpiopwm 是自定义的标签，用于引用
+    gpiopwm: gpiopwm {
         compatible = "pwm-gpio";
         #pwm-cells = <2>; // 标准 PWM 单元需要两个单元地址参数 (<channel>, <flags>)
 
         // 定义红色通道 PWM (连接到 P1.10)
+        // 注意 pwms 属性格式: <&controller_node channel flags>
         red_pwm: red_pwm {
             pwms = <&gpiopwm 0 PWM_POLARITY_INVERTED>; // 通道 0, 反相 (因为是共阴)
             gpio = <&gpio1 10 GPIO_ACTIVE_HIGH>; // P1.10, 高电平有效
@@ -41,37 +43,40 @@
         };
     };
 
-    // 定义 PWM LED 设备 和 ZMK LED 设备 在同一层级下
-    // 注意：这里只保留一个 pwmleds 节点
-    pwmleds { // <-- 这个节点名必须唯一
-        compatible = "pwm-leds"; // 或者根据实际情况可能是其他兼容字符串
-
-        // 定义一个名为 backlight_led 的 LED
-        backlight_led: led_0 {
+    // --- 2. 定义具体的 PWM LED (使用 pwm-leds 驱动) ---
+    // 注意：这里使用标准的 compatible 字符串 "pwm-leds"
+    // 并且这个节点放在根 "/" 下，不是嵌套在别的节点里
+    // Zephyr 驱动会处理这个节点并创建对应的 LED 设备
+    backlight_pwm_led: pwmleds {
+        compatible = "pwm-leds"; // 标准 PWM LED 驱动
+        // 在这个节点下定义具体的 LED
+        backlight_led: led_0 { // 子节点名 led_0 是标准的
             label = "backlight_led"; // LED 标签
-            pwms = <&red_pwm 0 PWM_POLARITY_INVERTED>,
+            // pwms 属性引用之前定义的 PWM 通道
+            pwms = <&red_pwm   0 PWM_POLARITY_INVERTED>,
                    <&green_pwm 0 PWM_POLARITY_INVERTED>,
-                   <&blue_pwm 0 PWM_POLARITY_INVERTED>;
+                   <&blue_pwm  0 PWM_POLARITY_INVERTED>;
             max-brightness = <255>; // 最大亮度值
             color = <255 255 255>; // 白色光 (RGB 255,255,255) - 这决定了混合的基础色温
         };
-    }; // <-- 结束 pwmleds 节点
+    };
 
-    // 定义 ZMK LED 设备 (与 pwmleds 同级)
-    leds {
+    // --- 3. 定义 ZMK LED 设备 ---
+    // 这个节点告诉 ZMK 如何使用上面定义的 LED
+    zmk_backlight: leds {
         compatible = "zmk,leds";
 
         // 定义名为 my_backlight 的 ZMK 背光设备
         my_backlight: backlight {
             label = "my_backlight"; // 设备标签
-            leds = <&backlight_led>; // 关联之前定义的 PWM LED
+            leds = <&backlight_led>; // 关联之前定义的 PWM LED 子节点
             trigger-binding = <&none>; // 默认触发方式，通常由 ZMK 内部管理
             // breathe-period-ms = <3000>; // 可选：设置呼吸效果周期
             // blink-duration-ms = <500>;  // 可选：设置闪烁持续时间
         };
     };
 
-    // --- 保持原有的矩阵扫描配置不变 ---
+    // --- 4. 保持原有的矩阵扫描配置不变 ---
     default_transform: keymap_transform_0 {
         compatible = "zmk,matrix-transform";
         columns = <4>;
