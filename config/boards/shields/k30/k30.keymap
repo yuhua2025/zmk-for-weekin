@@ -11,7 +11,9 @@
             label = "MACRO_COPY";
             #binding-cells = <0>;
             bindings = <
-                &kp LGUI(C)
+                &macro_press &kp LGUI
+                &macro_tap &kp C
+                &macro_release &kp LGUI
             >;
             wait-ms = <10>; // 小延迟确保组合键正确执行
         };
@@ -22,7 +24,9 @@
             label = "MACRO_PASTE";
             #binding-cells = <0>;
             bindings = <
-                &kp LGUI(V)
+                &macro_press &kp LGUI
+                &macro_tap &kp V
+                &macro_release &kp LGUI
             >;
             wait-ms = <10>;
         };
@@ -33,7 +37,9 @@
             label = "MACRO_CUT";
             #binding-cells = <0>;
             bindings = <
-                &kp LGUI(X)
+                &macro_press &kp LGUI
+                &macro_tap &kp X
+                &macro_release &kp LGUI
             >;
             wait-ms = <10>;
         };
