@@ -20,7 +20,7 @@
         |     0      |      .       |
         */
             bindings = <
-                &kp LGUI(KC_C)   &kp LGUI(KC_V)    &kp LGUI(KC_X)     &kp BSPC
+                &kp LGUI_C   &kp LGUI_V    &kp LGUI_X     &kp BSPC
                 &mo 1       &kp KP_SLASH    &kp KP_ASTERISK  &kp KP_MINUS
                 &kp KP_N7     &kp KP_N8       &kp KP_N9      &kp KP_PLUS
                 &kp KP_N4     &kp KP_N5       &kp KP_N6      &kp TAB
