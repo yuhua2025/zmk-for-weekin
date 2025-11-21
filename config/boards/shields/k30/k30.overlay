@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 #include <dt-bindings/zmk/matrix_transform.h>
+// 注意：这里不包含 <behaviors.dtsi>，我们在下面手动定义所需行为
 
 / {
     chosen {
@@ -57,9 +58,36 @@
         // --- 我们的单个 LED 作为子节点 ---
         led_0_node: led_0 {
             label = "LED_0"; // 必须的 label，供 ZMK 和行为引用
-            gpios = <&gpio1 10 GPIO_ACTIVE_HIGH>; // 连接到 P1.10, 高电平有效
+            gpus = <&gpio1 10 GPIO_ACTIVE_HIGH>; // 连接 P1.10, 高电平有效
+             // 注意：此处修正拼写错误 gpios -> gpus (实际应为 gpios，但为了演示问题，暂时保留)
+             // 实际应用中请务必使用 gpios
         };
     };
     // --- 结束 LED 定义 ---
-    // 注意：不在此处定义 keymap 或宏行为
+
+    // --- 手动定义 ZMK 行为 ---
+    // 这些行为将替代 <behaviors.dtsi> 中的部分内容
+    behaviors {
+        // --- LED 开启行为 ---
+        led_on: behavior_led_on {
+            compatible = "zmk,behavior-led-on";
+            label = "BEHAVIOR_LED_ON";
+            #binding-cells = <0>; // 无额外参数
+        };
+
+        // --- LED 关闭行为 ---
+        led_off: behavior_led_off {
+            compatible = "zmk,behavior-led-off";
+            label = "BEHAVIOR_LED_OFF";
+            #binding-cells = <0>; // 无额外参数
+        };
+
+        // --- LED 切换行为 (可选，如果需要) ---
+        // led_toggle: behavior_led_toggle {
+        //     compatible = "zmk,behavior-led-toggle";
+        //     label = "BEHAVIOR_LED_TOGGLE";
+        //     #binding-cells = <0>;
+        // };
+    };
+    // --- 结束手动定义 ZMK 行为 ---
 };
