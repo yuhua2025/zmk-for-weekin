@@ -63,47 +63,5 @@
         };
     };
     // --- 结束 LED 定义 ---
-
-    // --- ZMK 行为定义 ---
-    // !!! 这部分必须在 k30.overlay 中定义，不能在 .keymap 中 !!!
-    behaviors {
-        // 定义 LED 开启行为
-        behavior_led_on {
-             compatible = "zmk,behavior-led-on";
-             #binding-cells = <0>;
-             led = <&led_0_node>; // 引用上面定义的 LED 节点
-        };
-
-        // 定义 LED 关闭行为
-        behavior_led_off {
-             compatible = "zmk,behavior-led-off";
-             #binding-cells = <0>;
-             led = <&led_0_node>;
-        };
-
-        // 定义 LED 切换行为
-        behavior_led_toggle {
-            compatible = "zmk,behavior-led-toggle";
-            #binding-cells = <0>;
-            led = <&led_0_node>;
-        };
-
-        /* 如果你的 LED 支持 PWM 亮度调节，可以启用以下行为
-           并确保 Kconfig 中启用了 CONFIG_PWM
-        behavior_led_brightness_up {
-            compatible = "zmk,behavior-led-brightness-up";
-            #binding-cells = <0>;
-            led = <&led_0_node>;
-            step = <10>; // 亮度调整步长
-        };
-
-        behavior_led_brightness_down {
-            compatible = "zmk,behavior-led-brightness-down";
-            #binding-cells = <0>;
-            led = <&led_0_node>;
-            step = <10>;
-        };
-        */
-    };
-    // --- 结束 ZMK 行为定义 ---
+    // 注意：behaviors 节点已被移除，我们将使用 ZMK 内建别名
 };
