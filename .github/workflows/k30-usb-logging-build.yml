@@ -28,9 +28,22 @@ jobs:
           # 4. 导出 Zephyr 环境
           west zephyr-export
 
-          # 5. 注入你的 shield 配置
+          # 5. 创建 k30 shield 配置目录
           mkdir -p app/boards/shields/k30
-          cp -r "$GITHUB_WORKSPACE/config/boards/shields/k30"/* app/boards/shields/k30/
+
+          # 6. 检查并复制配置文件，如果存在
+          if [ -d "$GITHUB_WORKSPACE/config/boards/shields/k30" ]; then
+            echo "找到现有k30配置，正在复制..."
+            cp -r "$GITHUB_WORKSPACE/config/boards/shields/k30"/* app/boards/shields/k30/
+          else
+            echo "未找到现有k30配置，创建基本配置..."
+            # 创建基本的k30.conf文件
+            echo "# K30键盘配置" > app/boards/shields/k30/k30.conf
+            # 创建基本的k30.keymap文件
+            echo "/ {\n    keymap {\n        compatible = \"zmk,keymap\";\n        default_layer {\n            bindings = <\&kp ESC>;\n        };\n    };\n};" > app/boards/shields/k30/k30.keymap
+            # 创建基本的k30.dtsi文件
+            echo "#include <dt-bindings/zmk/matrix_transform.h>\n\n/ {\n    keymap {\n        compatible = \"zmk,keymap\"\n    };\n};\n\n&pro_micro_i2c {\n    status = \"okay\";\n};\n\n&pro_micro_spi {\n    status = \"okay\";\n};\n\n&spi0 {\n    status = \"okay\";\n};\n\n&spi1 {\n    status = \"okay\";\n};" > app/boards/shields/k30/k30.dtsi
+          fi
 
       - name: Configure USB Logging
         working-directory: zmk
