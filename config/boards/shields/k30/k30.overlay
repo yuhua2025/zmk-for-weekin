@@ -88,12 +88,16 @@
 };
 
 /* USB CDC ACM配置，用于USB日志功能 */
-&usb {
-	compatible = "nordic,nrf-usbd";
+/* 为nRF52840平台配置USB CDC ACM */
+&usbd {
 	status = "okay";
-	
-	cdc_acm_uart: cdc_acm_uart {
+
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	cdc_acm_uart: cdc_acm_uart@0 {
 		compatible = "zephyr,cdc-acm-uart";
-		status = "okay";
+		reg = <0>;
 		label = "CDC_ACM_0";
 	};
+};
