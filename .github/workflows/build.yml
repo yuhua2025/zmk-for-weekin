@@ -35,7 +35,8 @@ jobs:
       - name: Build firmware
         working-directory: zmk
         run: |
-          west build -b nrfmicro_13 -s app -- -DSHIELD=k30
+          # 构建固件并启用USB日志功能
+          west build -b nrfmicro_13 -s app -- -DSHIELD=k30 -DCONFIG_ZMK_USB_LOGGING=y
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4

@@ -1,2 +1,31 @@
 .vscode/
 .DS_store
+
+# 构建文件和临时文件
+/build/
+/cmake-build-*
+/.ninja_log
+
+# 编辑器和IDE相关文件
+*.swp
+*.swo
+*~
+*.orig
+
+# Python相关文件
+__pycache__/
+*.py[cod]
+
+# 操作系统生成的文件
+Thumbs.db
+
+# Zephyr和West相关文件
+/.west/
+/zephyr/boards/
+
+# 本地配置文件
+.env
+.local
+
+# 日志文件
+*.log
