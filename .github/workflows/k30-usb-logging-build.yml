@@ -61,7 +61,7 @@ jobs:
                     label = "CDC_ACM_0";
                 };
             };
-EOVERLAY
+            EOVERLAY
           fi && \
 
           # 7. 确保k30.conf包含必要的USB日志依赖配置
