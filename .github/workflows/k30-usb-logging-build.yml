@@ -16,35 +16,35 @@ jobs:
       - name: Clone and set up official ZMK
         run: |
           # 1. 克隆官方 ZMK
-          git clone https://github.com/zmkfirmware/zmk.git
-          cd zmk
+          git clone https://github.com/zmkfirmware/zmk.git && \
+          cd zmk && \
 
           # 2. 初始化 West workspace using ZMK's app as manifest
-          west init -l app
+          west init -l app && \
 
           # 3. 拉取所有依赖（zephyr, modules, etc.）
-          west update
+          west update && \
 
           # 4. 导出 Zephyr 环境
-          west zephyr-export
+          west zephyr-export && \
 
           # 5. 注入你的 shield 配置
-          mkdir -p app/boards/shields/k30
-          cp -r "$GITHUB_WORKSPACE/config/boards/shields/k30"/* app/boards/shields/k30/ || echo "注意: 没有找到config目录，将使用默认配置"
+          mkdir -p app/boards/shields/k30 && \
+          cp -r "$GITHUB_WORKSPACE/config/boards/shields/k30"/* app/boards/shields/k30/ 2>/dev/null || echo "注意: 没有找到config目录，将使用默认配置" && \
 
           # 6. 检查zmk-usb-logging snippet是否存在
           if [ ! -d "app/snippets/zmk-usb-logging" ]; then
-            echo "创建zmk-usb-logging snippet目录"
-            mkdir -p app/snippets/zmk-usb-logging
+            echo "创建zmk-usb-logging snippet目录" && \
+            mkdir -p app/snippets/zmk-usb-logging && \
             
             # 创建snippet配置文件
-            echo "name: zmk-usb-logging" > app/snippets/zmk-usb-logging/snippet.yml
-            echo "append: " >> app/snippets/zmk-usb-logging/snippet.yml
-            echo "  - zmk-usb-logging.conf" >> app/snippets/zmk-usb-logging/snippet.yml
-            echo "  - zmk-usb-logging.overlay" >> app/snippets/zmk-usb-logging/snippet.yml
+            echo "name: zmk-usb-logging" > app/snippets/zmk-usb-logging/snippet.yml && \
+            echo "append: " >> app/snippets/zmk-usb-logging/snippet.yml && \
+            echo "  - zmk-usb-logging.conf" >> app/snippets/zmk-usb-logging/snippet.yml && \
+            echo "  - zmk-usb-logging.overlay" >> app/snippets/zmk-usb-logging/snippet.yml && \
             
             # 创建配置文件
-            echo "CONFIG_ZMK_USB_LOGGING=y" > app/snippets/zmk-usb-logging/zmk-usb-logging.conf
+            echo "CONFIG_ZMK_USB_LOGGING=y" > app/snippets/zmk-usb-logging/zmk-usb-logging.conf && \
             
             # 创建设备树覆盖文件
             cat > app/snippets/zmk-usb-logging/zmk-usb-logging.overlay << 'EOVERLAY'
@@ -61,25 +61,28 @@ jobs:
                     label = "CDC_ACM_0";
                 };
             };
-            EOVERLAY
-          fi
+EOVERLAY
+          fi && \
 
           # 7. 确保k30.conf包含必要的USB日志依赖配置
           if [ -f "app/boards/shields/k30/k30.conf" ]; then
-            echo "添加USB日志依赖配置到k30.conf"
-            { \
-              echo "" \
-              echo "# USB日志记录配置 - 启用USB日志所需的所有依赖项" \
-              echo "CONFIG_LOG=y" \
-              echo "CONFIG_USB_DEVICE=y" \
-              echo "CONFIG_USB_DEVICE_STACK=y" \
-              echo "CONFIG_SERIAL_SUPPORT_INTERRUPT=y" \
-              echo "CONFIG_CONSOLE=y" \
-              echo "CONFIG_USB_CDC_ACM=y" \
-              echo "CONFIG_UART_CONSOLE=y" \
-              echo "CONFIG_UART_INTERRUPT_DRIVEN=y" \
-            } >> app/boards/shields/k30/k30.conf
-          fi
+            echo "添加USB日志依赖配置到k30.conf" && \
+            cat >> app/boards/shields/k30/k30.conf << 'EOF'
+
+# USB日志记录配置 - 启用USB日志所需的所有依赖项
+CONFIG_LOG=y
+CONFIG_USB_DEVICE=y
+CONFIG_USB_DEVICE_STACK=y
+CONFIG_SERIAL_SUPPORT_INTERRUPT=y
+CONFIG_CONSOLE=y
+CONFIG_USB_CDC_ACM=y
+CONFIG_UART_CONSOLE=y
+CONFIG_UART_INTERRUPT_DRIVEN=y
+EOF
+          fi && \
+          
+          # 确认所有配置已完成
+          echo "ZMK设置和配置完成"
 
       - name: Debug Information
         working-directory: zmk
