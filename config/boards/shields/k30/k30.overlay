@@ -88,16 +88,22 @@
 };
 
 /* USB CDC ACM配置，用于USB日志功能 */
-/* 为nRF52840平台配置USB CDC ACM */
+/* 简化的配置，与zmk-usb-logging snippet配合使用 */
 &usbd {
 	status = "okay";
 
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	cdc_acm_uart: cdc_acm_uart@0 {
+	cdc_acm_uart: cdc-acm-uart@0 {
 		compatible = "zephyr,cdc-acm-uart";
 		reg = <0>;
-		label = "CDC_ACM_0";
+		label = "cdc-acm-0";
+	};
+};
+
+/ { 
+	aliases {
+		cdc-acm-0 = &cdc_acm_uart;
 	};
 };
