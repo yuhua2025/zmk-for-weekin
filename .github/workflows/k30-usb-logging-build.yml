@@ -28,7 +28,15 @@ jobs:
             ${{ runner.os }}-build-
             ${{ runner.os }}-
       - name: Initialize workspace (west init)
-        run: west init -l app
+        run: |
+          # 检查app目录是否存在west.yml
+          if [ -f "app/west.yml" ]; then
+            echo "在app目录中找到west.yml，使用当前目录初始化"
+            west init -l app
+          else
+            echo "在app目录中未找到west.yml，尝试直接初始化"
+            west init -l .
+          fi
       - name: Update modules (west update)
         run: west update --fetch-opt=--filter=tree:0
       - name: Export Zephyr CMake package (west zephyr-export)
