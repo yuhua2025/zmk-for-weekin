@@ -50,10 +50,10 @@ jobs:
             echo "# K30键盘配置" > app/boards/shields/k30/k30.conf
             
             # 4. 创建基本的k30.keymap文件
-            echo "/ {\n    keymap {\n        compatible = \"zmk,keymap\";\n        default_layer {\n            bindings = <\&kp ESC>;\n        };\n    };\n};" > app/boards/shields/k30/k30.keymap
+            echo "/ {\n    keymap {\n        compatible = \\\"zmk,keymap\\\";\n        default_layer {\n            bindings = <\&kp ESC>;\n        };\n    };\n};" > app/boards/shields/k30/k30.keymap
             
             # 5. 创建正确的k30.dtsi文件，修复语法错误
-            echo "#include <dt-bindings/zmk/matrix_transform.h>\n\n/ {\n    chosen {\n        zmk,matrix-transform = <&matrix_transform>;\n    };\n    \n    matrix_transform: matrix_transform {\n        compatible = \"zmk,matrix-transform\";\n        columns = <1>;\n        rows = <1>;\n        map = <RC(0,0)>;\n    };\n};\n\n&pro_micro_i2c {\n    status = \"okay\";\n};\n\n&pro_micro_spi {\n    status = \"okay\";\n};\n\n&spi0 {\n    status = \"okay\";\n};\n\n&spi1 {\n    status = \"okay\";\n};" > app/boards/shields/k30/k30.dtsi
+            echo "#include <dt-bindings/zmk/matrix_transform.h>\n\n/ {\n    chosen {\n        zmk,matrix-transform = <&matrix_transform>;\n    };\n    \n    matrix_transform: matrix_transform {\n        compatible = \\\"zmk,matrix-transform\\\";\n        columns = <1>;\n        rows = <1>;\n        map = <RC(0,0)>;\n    };\n};\n\n&pro_micro_i2c {\n    status = \\\"okay\\\";\n};\n\n&pro_micro_spi {\n    status = \\\"okay\\\";\n};\n\n&spi0 {\n    status = \\\"okay\\\";\n};\n\n&spi1 {\n    status = \\\"okay\\\";\n};" > app/boards/shields/k30/k30.dtsi
             
             # 6. 创建必要的CMakeLists.txt文件
             echo "# CMakeLists.txt for K30 shield\nadd_shield(k30)" > app/boards/shields/k30/CMakeLists.txt
@@ -65,14 +65,22 @@ jobs:
     };
 
     kscan0: kscan_0 {
-        compatible = "zmk,kscan-matrix";\n        diode-direction = "col2row";\n        row-gpios = <&gpio0 29 GPIO_ACTIVE_LOW>;\n        col-gpios = <&gpio0 28 GPIO_ACTIVE_HIGH>;\n    };
+        compatible = \"zmk,kscan-matrix\";
+        diode-direction = \"col2row\";
+        row-gpios = <&gpio0 29 GPIO_ACTIVE_LOW>;
+        col-gpios = <&gpio0 28 GPIO_ACTIVE_HIGH>;
+    };
 
     leds {
-        compatible = "gpio-leds";\n    };
+        compatible = \"gpio-leds\";
+    };
 };" > app/boards/shields/k30/k30.overlay
             
             # 8. 创建shield.dts文件（必需）
-            echo "/dts-v1/;\n#include <zephyr/dt-bindings/input/input-event-codes.h>\n#include <zephyr/dt-bindings/zmk/matrix_transform.h>\n#include "k30.dtsi"" > app/boards/shields/k30/k30.dts
+            echo "/dts-v1/;
+#include <zephyr/dt-bindings/input/input-event-codes.h>
+#include <zephyr/dt-bindings/zmk/matrix_transform.h>
+#include \"k30.dtsi\"" > app/boards/shields/k30/k30.dts
           fi
 
           # 显示创建的文件，用于调试
