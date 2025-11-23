@@ -363,15 +363,27 @@ jobs:
           echo "CONFIG_SHIELD=k30" > config/boards/shields/k30/k30.conf
           echo "CONFIG_ZMK_USB_LOGGING=y" >> config/boards/shields/k30/k30.conf
 
+          # 显式设置环境变量，确保在构建过程中被正确识别
+          echo "=== 设置构建环境变量 ==="
+          export SHIELD=k30
+          export ZMK_CONFIG="$GITHUB_WORKSPACE/config"
+          echo "已设置环境变量:"
+          echo "  SHIELD=$SHIELD"
+          echo "  ZMK_CONFIG=$ZMK_CONFIG"
+
           # 根据GitHub Actions环境特点的多阶段构建策略
           # 1. 直接使用当前目录作为构建基础（适用于GitHub Actions环境）
           echo "=== 尝试方法1: 直接使用当前目录构建 ==="
-          if west build -b nrfmicro_13 -- \
-              -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
-              -DSHIELD=k30 2>/dev/null; then
+          # 修改参数传递方式，确保SHIELD和ZMK_CONFIG正确初始化
+          if west build -b nrfmicro_13 \
+              -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config"; then
             echo "构建成功！"
             exit 0
           fi
+          # 显示详细错误
+          echo "尝试方法1失败，显示详细错误："
+          west build -b nrfmicro_13 \
+              -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config" || true
 
           # 2. 尝试使用zephyr/samples目录作为构建源（如果存在）
           echo "=== 尝试方法2: 使用zephyr/samples目录构建 ==="
@@ -380,9 +392,8 @@ jobs:
             SAMPLE_DIR=$(find zephyr/samples -type d -name "*application*" -o -name "*basic*" | head -n 1)
             if [ -n "$SAMPLE_DIR" ]; then
               echo "找到示例目录: $SAMPLE_DIR"
-              if west build -b nrfmicro_13 -s "$SAMPLE_DIR" -- \
-                  -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
-                  -DSHIELD=k30 2>/dev/null; then
+              if west build -b nrfmicro_13 -s "$SAMPLE_DIR" \
+                -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config"; then
                 echo "构建成功！"
                 exit 0
               fi
@@ -402,9 +413,8 @@ jobs:
           # 创建最小的prj.conf
           echo "CONFIG_SHIELD=k30\nCONFIG_ZMK_USB_LOGGING=y\nCONFIG_LOG=y\n" > minimal_app/prj.conf
 
-          if west build -b nrfmicro_13 -s minimal_app -- \
-              -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
-              -DSHIELD=k30 2>/dev/null; then
+          if west build -b nrfmicro_13 -s minimal_app \
+              -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config"; then
             echo "构建成功！"
             exit 0
           fi
@@ -414,9 +424,8 @@ jobs:
           if [ -d "zephyr" ]; then
             mkdir -p zephyr_build
             cd zephyr_build
-            if west build -b nrfmicro_13 -- \
-                -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
-                -DSHIELD=k30 2>/dev/null; then
+            if west build -b nrfmicro_13 \
+                -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config"; then
               echo "构建成功！"
               exit 0
             fi
