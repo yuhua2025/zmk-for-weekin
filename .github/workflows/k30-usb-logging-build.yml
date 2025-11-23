@@ -43,34 +43,34 @@ jobs:
       - name: Check and create USB logging snippet
         run: |
           # 确保zmk-usb-logging snippet存在
-          if [ ! -d "zmk/app/snippets/zmk-usb-logging" ]; then
+          if [ ! -d "app/snippets/zmk-usb-logging" ]; then
             echo "创建zmk-usb-logging snippet目录"
-            mkdir -p zmk/app/snippets/zmk-usb-logging
+            mkdir -p app/snippets/zmk-usb-logging
             
             # 创建snippet配置文件
-            echo "name: zmk-usb-logging" > zmk/app/snippets/zmk-usb-logging/snippet.yml
-            echo "append: " >> zmk/app/snippets/zmk-usb-logging/snippet.yml
-            echo "  - zmk-usb-logging.conf" >> zmk/app/snippets/zmk-usb-logging/snippet.yml
-            echo "  - zmk-usb-logging.overlay" >> zmk/app/snippets/zmk-usb-logging/snippet.yml
+            echo "name: zmk-usb-logging" > app/snippets/zmk-usb-logging/snippet.yml
+            echo "append: " >> app/snippets/zmk-usb-logging/snippet.yml
+            echo "  - zmk-usb-logging.conf" >> app/snippets/zmk-usb-logging/snippet.yml
+            echo "  - zmk-usb-logging.overlay" >> app/snippets/zmk-usb-logging/snippet.yml
             
             # 创建配置文件
-            echo "CONFIG_ZMK_USB_LOGGING=y" > zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.conf
+            echo "CONFIG_ZMK_USB_LOGGING=y" > app/snippets/zmk-usb-logging/zmk-usb-logging.conf
             
             # 创建设备树覆盖文件
-            echo '/' > zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '{' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '    chosen {' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '        zephyr,console = &snippet_zmk_usb_logging_uart;' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '        zephyr,shell-uart = &snippet_zmk_usb_logging_uart;' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '    };' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '};' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '&zephyr_udc0 {' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '    snippet_zmk_usb_logging_uart: snippet_zmk_usb_logging_uart {' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '        compatible = "zephyr,cdc-acm-uart";' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '        label = "CDC_ACM_0";' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '    };' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
-            echo '};' >> zmk/app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '/' > app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '{' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '    chosen {' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '        zephyr,console = &snippet_zmk_usb_logging_uart;' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '        zephyr,shell-uart = &snippet_zmk_usb_logging_uart;' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '    };' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '};' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '&zephyr_udc0 {' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '    snippet_zmk_usb_logging_uart: snippet_zmk_usb_logging_uart {' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '        compatible = "zephyr,cdc-acm-uart";' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '        label = "CDC_ACM_0";' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '    };' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
+            echo '};' >> app/snippets/zmk-usb-logging/zmk-usb-logging.overlay
           else
             echo "zmk-usb-logging snippet已存在"
           fi
@@ -132,7 +132,13 @@ jobs:
 
       - name: Build firmware
         run: |
-          west build -b nrfmicro_13 -s zmk/app -- \
+          # 检查目录结构，确认正确的app路径
+          echo "检查app目录位置..."
+          ls -la app/ 2>/dev/null || echo "app目录不存在"
+          ls -la app/CMakeLists.txt 2>/dev/null || echo "app/CMakeLists.txt不存在"
+
+          # 使用正确的app目录路径进行构建
+          west build -b nrfmicro_13 -s app -- \
             -DZMK_CONFIG="$GITHUB_WORKSPACE/config" \
             -DSHIELD=k30
 
