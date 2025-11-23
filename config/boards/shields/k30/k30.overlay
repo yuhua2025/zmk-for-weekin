@@ -88,7 +88,12 @@
 };
 
 /* USB CDC ACM配置，用于USB日志功能 */
-&cdc_acm_uart {
+&usb {
+	compatible = "nordic,nrf-usbd";
 	status = "okay";
-	current-speed = <115200>;
-};
+	
+	cdc_acm_uart: cdc_acm_uart {
+		compatible = "zephyr,cdc-acm-uart";
+		status = "okay";
+		label = "CDC_ACM_0";
+	};
