@@ -14,6 +14,16 @@
     zmk,battery = &vbatt;
     };
     
+    /* USB CDC ACM配置，用于USB日志功能 */
+    aliases {
+        cdc_acm_0 = &cdc_acm_uart;
+    };
+    
+    chosen {
+        zephyr,console = &cdc_acm_uart;
+        zephyr,shell-uart = &cdc_acm_uart;
+    };
+    
     vbatt: vbatt {
         compatible = "zmk,battery-voltage-divider";
         io-channels = <&adc 2>; /* p0.4引脚对应的ADC通道 */
@@ -75,4 +85,10 @@
 			, <&gpio1 6 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
 			;
 	};
+};
+
+/* USB CDC ACM配置，用于USB日志功能 */
+&cdc_acm_uart {
+	status = "okay";
+	current-speed = <115200>;
 };
