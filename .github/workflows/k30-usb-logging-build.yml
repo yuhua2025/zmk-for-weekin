@@ -1,4 +1,4 @@
-name: Build K30 Keyboard - USB Logging Firmware
+name: Build K30 Keyboard - Full Firmware with USB Logging
 
 on: [push, pull_request, workflow_dispatch]
 
@@ -8,494 +8,50 @@ jobs:
     container:
       image: zmkfirmware/zmk-build-arm:stable
       options: --user root
+
     steps:
-      - name: Checkout repository
+      - name: Checkout your repo (to get your k30 config)
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          persist-credentials: false
-      - name: Cache west modules
-        uses: actions/cache@v4
-        env:
-          cache-name: cache-zephyr-modules
-        with:
-          path: |
-            modules/
-            tools/
-            zephyr/
-            bootloader/
-          key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('app/west.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-build-${{ env.cache-name }}-
-            ${{ runner.os }}-build-
-            ${{ runner.os }}-
-      - name: Initialize ZMK
-        run: |
-          # 检查目录结构并找到正确的west.yml文件位置
-          echo "检查目录结构..."
-          ls -la
-          find . -name "west.yml" -type f
 
-          # 直接在根目录初始化，让west自动查找west.yml
-          west init
+      - name: Clone and set up official ZMK
+        run: |
+          # 1. 克隆官方 ZMK
+          git clone https://github.com/zmkfirmware/zmk.git
+          cd zmk
+
+          # 2. 初始化 West workspace using ZMK's app as manifest
+          west init -l app
+
+          # 3. 拉取所有依赖（zephyr, modules, etc.）
           west update
+
+          # 4. 导出 Zephyr 环境
           west zephyr-export
-      - name: Check and create USB logging snippet
+
+          # 5. 注入你的 shield 配置
+          mkdir -p app/boards/shields/k30
+          cp -r "$GITHUB_WORKSPACE/config/boards/shields/k30"/* app/boards/shields/k30/
+
+      - name: Configure USB Logging
+        working-directory: zmk
         run: |
-          # 确保zmk-usb-logging snippet存在
-          echo "=== USB日志Snippet创建与配置 ==="
-
-          # 创建多个可能的snippet目录位置，确保构建系统可以找到
-          # 1. 在config目录中创建（这是最可靠的位置，因为我们会在构建时指定）
-          CONFIG_SNIPPET_DIR="config/snippets"
-          mkdir -p "$CONFIG_SNIPPET_DIR"
-          echo "创建配置目录snippet位置: $CONFIG_SNIPPET_DIR"
-
-          # 2. 同时创建标准app/snippets位置
-          APP_SNIPPET_DIR="app/snippets"
-          mkdir -p "$APP_SNIPPET_DIR"
-          echo "创建app目录snippet位置: $APP_SNIPPET_DIR"
-
-          # 创建USB日志snippet到配置目录（优先使用）
-          CONFIG_ZMK_USB_DIR="$CONFIG_SNIPPET_DIR/zmk-usb-logging"
-          mkdir -p "$CONFIG_ZMK_USB_DIR"
-          echo "在配置目录创建zmk-usb-logging snippet: $CONFIG_ZMK_USB_DIR"
-
-          # 创建snippet配置文件
-          echo "name: zmk-usb-logging" > "$CONFIG_ZMK_USB_DIR/snippet.yml"
-          echo "append: " >> "$CONFIG_ZMK_USB_DIR/snippet.yml"
-          echo "  - zmk-usb-logging.conf" >> "$CONFIG_ZMK_USB_DIR/snippet.yml"
-          echo "  - zmk-usb-logging.overlay" >> "$CONFIG_ZMK_USB_DIR/snippet.yml"
-
-          # 创建配置文件，包含所有必要的配置
-          echo "# USB日志配置" > "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.conf"
-          echo "CONFIG_ZMK_USB_LOGGING=y" >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.conf"
-          echo "CONFIG_LOG=y" >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.conf"
-          echo "CONFIG_LOG_BACKEND_UART=y" >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.conf"
-          echo "CONFIG_LOG_BACKEND_UART_OUTPUT_BUFFER_SIZE=1024" >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.conf"
-
-          # 创建设备树覆盖文件
-          echo '/' > "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '{' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '    chosen {' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '        zephyr,console = &snippet_zmk_usb_logging_uart;' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '        zephyr,shell-uart = &snippet_zmk_usb_logging_uart;' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '    };' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '};' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '&zephyr_udc0 {' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '    snippet_zmk_usb_logging_uart: snippet_zmk_usb_logging_uart {' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '        compatible = "zephyr,cdc-acm-uart";' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '        label = "CDC_ACM_0";' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '    };' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-          echo '};' >> "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay"
-
-          # 同时在app目录创建相同的snippet作为备份
-          APP_ZMK_USB_DIR="$APP_SNIPPET_DIR/zmk-usb-logging"
-          mkdir -p "$APP_ZMK_USB_DIR"
-          echo "在app目录创建备份zmk-usb-logging snippet: $APP_ZMK_USB_DIR"
-
-          # 复制配置文件到app目录snippet
-          cp "$CONFIG_ZMK_USB_DIR/snippet.yml" "$APP_ZMK_USB_DIR/"
-          cp "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.conf" "$APP_ZMK_USB_DIR/"
-          cp "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay" "$APP_ZMK_USB_DIR/"
-
-          # 创建k30屏蔽配置目录结构
-          K30_DIR="config/boards/shields/k30"
-          mkdir -p "$K30_DIR"
-          echo "创建k30屏蔽配置目录: $K30_DIR"
-
-          # 创建完整的k30.conf文件
-          echo "# K30键盘配置 - 包含USB日志支持" > "$K30_DIR/k30.conf"
-          echo "CONFIG_SHIELD=k30" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_ZMK_USB_LOGGING=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_LOG=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_USB_DEVICE=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_USB_DEVICE_STACK=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_SERIAL_SUPPORT_INTERRUPT=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_CONSOLE=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_USB_CDC_ACM=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_UART_CONSOLE=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_UART_INTERRUPT_DRIVEN=y" >> "$K30_DIR/k30.conf"
-          echo "CONFIG_LOG_BACKEND_UART=y" >> "$K30_DIR/k30.conf"
-
-          # 同时在app目录创建k30配置作为备份
-          APP_K30_DIR="app/boards/shields/k30"
-          mkdir -p "$APP_K30_DIR"
-          echo "在app目录创建备份k30配置: $APP_K30_DIR"
-          cp "$K30_DIR/k30.conf" "$APP_K30_DIR/"
-
-          # 同时在可能的zmk目录创建配置（如果zmk目录存在）
-          if [ -d "zmk" ]; then
-            echo "发现zmk目录，创建zmk/app路径结构"
-            ZMK_APP_DIR="zmk/app"
-            
-            # 创建zmk/app下的snippet目录
-            ZMK_SNIPPET_DIR="$ZMK_APP_DIR/snippets"
-            mkdir -p "$ZMK_SNIPPET_DIR/zmk-usb-logging"
-            echo "在zmk/app创建zmk-usb-logging snippet: $ZMK_SNIPPET_DIR/zmk-usb-logging"
-            
-            # 复制snippet文件
-            cp "$CONFIG_ZMK_USB_DIR/snippet.yml" "$ZMK_SNIPPET_DIR/zmk-usb-logging/"
-            cp "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.conf" "$ZMK_SNIPPET_DIR/zmk-usb-logging/"
-            cp "$CONFIG_ZMK_USB_DIR/zmk-usb-logging.overlay" "$ZMK_SNIPPET_DIR/zmk-usb-logging/"
-            
-            # 创建zmk/app下的k30目录
-            ZMK_K30_DIR="$ZMK_APP_DIR/boards/shields/k30"
-            mkdir -p "$ZMK_K30_DIR"
-            echo "在zmk/app创建k30配置: $ZMK_K30_DIR"
-            cp "$K30_DIR/k30.conf" "$ZMK_K30_DIR/"
-          fi
-
-          # 验证所有创建的配置
-          echo "=== 验证创建的配置文件 ==="
-          echo "config目录结构:"
-          find config -type f | sort
-
-          echo "app目录结构:"
-          find app -name "*.conf" -o -name "*.yml" -o -name "*.overlay" 2>/dev/null || echo "app目录下无配置文件"
-
-          if [ -d "zmk" ]; then
-            echo "zmk/app目录结构:"
-            find zmk/app -name "*.conf" -o -name "*.yml" -o -name "*.overlay" 2>/dev/null || echo "zmk/app目录下无配置文件"
-          fi
-
-      - name: Debug Information
-        run: |
-          echo "=== 详细项目结构诊断信息 ==="
-
-          # 1. 环境信息
-          echo "\n=== 环境信息 ==="
-          echo "当前工作目录: $(pwd)"
-          echo "系统信息: $(uname -a)"
-          echo "当前用户: $(whoami)"
-          echo "环境变量预览:"
-          echo "  GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
-          echo "  CI=${CI}"
-          # 使用更兼容的shell语法显示PATH的前100个字符
-          echo "  PATH前100字符: $(echo "$PATH" | cut -c1-100)..."
-
-          # 2. 根目录结构详细检查
-          echo "\n=== 根目录结构 ==="
-          ls -la . || echo "无法列出根目录内容"
-          echo "\n=== 检查关键文件 ==="
-          if [ -f "CMakeLists.txt" ]; then
-            echo "根目录CMakeLists.txt存在，前10行内容:"
-            head -n 10 "CMakeLists.txt" || echo "无法读取CMakeLists.txt"
-          else
-            echo "根目录CMakeLists.txt不存在"
-          fi
-          if [ -f "west.yml" ]; then
-            echo "根目录west.yml存在，前10行内容:"
-            head -n 10 "west.yml" || echo "无法读取west.yml"
-          else
-            echo "根目录west.yml不存在"
-          fi
-
-          # 3. 主要目录结构检查（多个层级）
-          echo "\n=== 一级目录完整列表 ==="
-          find . -maxdepth 1 -type d -not -path '*/\.*' | sort
-
-          # 4. 检查所有可能的应用目录
-          echo "\n=== 应用目录检查 ==="
-          # 使用标准shell兼容的方式检查多个目录
-          for dir in app src "zephyr/samples" "zmk/app"; do
-            if [ -d "$dir" ]; then
-              echo "$dir目录存在，内容:" 
-              ls -la "$dir" || echo "无法列出$dir目录内容"
-              # 检查应用目录中的CMakeLists.txt
-              if [ -f "$dir/CMakeLists.txt" ]; then
-                echo "  $dir/CMakeLists.txt存在"
-              else
-                echo "  $dir/CMakeLists.txt不存在"
-              fi
-            else
-              echo "$dir目录不存在"
-            fi
-          done
-
-          # 5. 配置和Snippet目录检查（多路径）
-          echo "\n=== 配置和Snippet目录检查 ==="
-          # 检查config目录（这是ZMK推荐的配置位置）
-          if [ -d "config" ]; then
-            echo "config目录存在，内容:"
-            ls -la "config" || echo "无法列出config目录内容"
-            # 检查config下的snippets目录
-            if [ -d "config/snippets" ]; then
-              echo "  config/snippets目录存在，内容:"
-              ls -la "config/snippets" || echo "无法列出config/snippets目录内容"
-              if [ -d "config/snippets/zmk-usb-logging" ]; then
-                echo "  USB日志snippet存在于config/snippets，内容:"
-                ls -la "config/snippets/zmk-usb-logging" || echo "无法列出snippet内容"
-                # 预览关键配置文件
-                if [ -f "config/snippets/zmk-usb-logging/snippet.yml" ]; then
-                  echo "  snippet.yml内容:"
-                  cat "config/snippets/zmk-usb-logging/snippet.yml" || echo "无法读取snippet.yml"
-                fi
-              fi
-            fi
-          else
-            echo "config目录不存在"
-          fi
-
-          # 6. 检查所有可能的snippet位置
-          echo "\n=== 多位置Snippet检查 ==="
-          # 使用标准shell兼容的方式检查多个snippet位置
-          for loc in "config/snippets/zmk-usb-logging" "app/snippets/zmk-usb-logging" "zmk/app/snippets/zmk-usb-logging"; do
-            if [ -d "$loc" ]; then
-              echo "$loc存在，关键文件:"
-              [ -f "$loc/snippet.yml" ] && echo "  - $loc/snippet.yml存在"
-              [ -f "$loc/zmk-usb-logging.conf" ] && echo "  - $loc/zmk-usb-logging.conf存在"
-              [ -f "$loc/zmk-usb-logging.overlay" ] && echo "  - $loc/zmk-usb-logging.overlay存在"
-            else
-              echo "$loc不存在"
-            fi
-          done
-
-          # 7. K30配置文件多位置检查
-          echo "\n=== K30配置文件检查 ==="
-          # 使用标准shell兼容的方式检查多个配置文件位置
-          for loc in "config/boards/shields/k30/k30.conf" "app/boards/shields/k30/k30.conf" "zmk/app/boards/shields/k30/k30.conf"; do
-            if [ -f "$loc" ]; then
-              echo "$loc存在，内容预览:" 
-              cat "$loc" || echo "无法读取k30.conf内容"
-            else
-              echo "$loc不存在"
-              # 创建目录结构的命令提示
-              DIR_PATH=$(dirname "$loc")
-              echo "  创建命令: mkdir -p $DIR_PATH && echo 'CONFIG_SHIELD=k30' > $loc"
-            fi
-          done
-
-          # 8. Zephyr目录深度检查
-          echo "\n=== Zephyr目录详细检查 ==="
-          if [ -d "zephyr" ]; then
-            echo "zephyr目录存在，主要子目录:"
-            ls -la "zephyr" || echo "无法列出zephyr目录内容"
-            # 检查zephyr是否有samples目录（可能包含构建示例）
-            if [ -d "zephyr/samples" ]; then
-              echo "zephyr/samples目录存在，主要示例应用:"
-              ls -la "zephyr/samples" | head -n 10 || echo "无法列出samples目录内容"
-            fi
-            # 检查zephyr是否有CMakeLists.txt
-            if [ -f "zephyr/CMakeLists.txt" ]; then
-              echo "zephyr/CMakeLists.txt存在"
-            else
-              echo "zephyr/CMakeLists.txt不存在"
-            fi
-          else
-            echo "zephyr目录不存在"
-          fi
-
-          # 9. West工具和配置检查
-          echo "\n=== West工具检查 ==="
-          if command -v west &> /dev/null; then
-            echo "west命令可用，版本: $(west --version)"
-            # 检查west配置
-            echo "West工作区信息:"
-            west list 2>/dev/null || echo "无法获取west工作区信息"
-          else
-            echo "west命令不可用"
-          fi
-
-          # 10. 查找所有可能的CMakeLists.txt文件
-          echo "\n=== 查找所有CMakeLists.txt文件 ==="
-          find . -name "CMakeLists.txt" -not -path "*/\.*" | sort || echo "未找到CMakeLists.txt文件"
-
-          # 11. 查找所有conf文件
-          echo "\n=== 查找所有配置文件 ==="
-          find . -name "*.conf" -not -path "*/\.*" | sort || echo "未找到配置文件"
-
-          echo "\n=== 诊断信息收集完成 ==="
+          # 启用 USB 串口调试
+          echo "CONFIG_UART_CONSOLE=y" >> app/boards/shields/k30/k30.conf
+          echo "CONFIG_USB_DEVICE_STACK=y" >> app/boards/shields/k30/k30.conf
+          echo "CONFIG_USB_DEVICE_PRODUCT=\"ZMK Keyboard\"" >> app/boards/shields/k30/k30.conf
+          echo "CONFIG_USB_CDC_ACM=y" >> app/boards/shields/k30/k30.conf
+          echo "CONFIG_USB_CDC_ACM_RINGBUF_SIZE=16384" >> app/boards/shields/k30/k30.conf
+          echo "CONFIG_LOG=y" >> app/boards/shields/k30/k30.conf
+          echo "CONFIG_LOG_BACKEND_SERIAL=y" >> app/boards/shields/k30/k30.conf
+          echo "CONFIG_LOG_BACKEND_UART_OUTPUT_TEXT=y" >> app/boards/shields/k30/k30.conf
 
       - name: Build firmware
+        working-directory: zmk
         run: |
-          # 增强的目录结构检查
-          echo "=== 当前工作目录 ==="
-          pwd
-
-          echo "=== 根目录结构 ==="
-          ls -la
-
-          # 查找所有可能的源目录
-          echo "=== 查找可能的应用源目录 ==="
-          find . -name "app" -type d -maxdepth 3
-          find . -name "src" -type d -maxdepth 2
-
-          # 查找所有CMakeLists.txt文件
-          echo "=== 查找所有CMakeLists.txt文件 ==="
-          find . -name "CMakeLists.txt" -maxdepth 3
-
-          # 查找west.yml文件位置
-          echo "=== 查找west.yml文件 ==="
-          find . -name "west.yml"
-
-          # 详细检查zephyr目录（根据错误日志，此目录存在）
-          echo "=== 详细检查zephyr目录 ==="
-          if [ -d "zephyr" ]; then
-            ls -la zephyr/
-            echo "zephyr目录内容详情:"
-            ls -la zephyr/app 2>/dev/null || echo "zephyr/app目录不存在"
-            ls -la zephyr/samples 2>/dev/null || echo "zephyr/samples目录不存在"
-            ls -la zephyr/boards 2>/dev/null || echo "zephyr/boards目录不存在"
-          else
-            echo "zephyr目录不存在"
-          fi
-
-          # 创建必要的配置目录
-          echo "=== 创建必要的配置目录 ==="
-          mkdir -p config
-          mkdir -p config/boards/shields/k30
-
-          # 创建k30屏蔽配置
-          echo "CONFIG_SHIELD=k30" > config/zmk-config.conf
-          echo "CONFIG_ZMK_USB_LOGGING=y" >> config/zmk-config.conf
-          echo "CONFIG_LOG=y" >> config/zmk-config.conf
-          echo "CONFIG_USB_DEVICE=y" >> config/zmk-config.conf
-          echo "CONFIG_USB_DEVICE_STACK=y" >> config/zmk-config.conf
-          echo "CONFIG_SERIAL_SUPPORT_INTERRUPT=y" >> config/zmk-config.conf
-          echo "CONFIG_CONSOLE=y" >> config/zmk-config.conf
-          echo "CONFIG_USB_CDC_ACM=y" >> config/zmk-config.conf
-          echo "CONFIG_UART_CONSOLE=y" >> config/zmk-config.conf
-          echo "CONFIG_UART_INTERRUPT_DRIVEN=y" >> config/zmk-config.conf
-
-          # 创建k30屏蔽配置文件
-          echo "CONFIG_SHIELD=k30" > config/boards/shields/k30/k30.conf
-          echo "CONFIG_ZMK_USB_LOGGING=y" >> config/boards/shields/k30/k30.conf
-
-          # 显式设置环境变量，确保在构建过程中被正确识别
-          echo "=== 设置构建环境变量 ==="
-          export SHIELD=k30
-          export ZMK_CONFIG="$GITHUB_WORKSPACE/config"
-          echo "已设置环境变量:"
-          echo "  SHIELD=$SHIELD"
-          echo "  ZMK_CONFIG=$ZMK_CONFIG"
-
-          # 根据GitHub Actions环境特点的多阶段构建策略
-          # 1. 直接使用当前目录作为构建基础（适用于GitHub Actions环境）
-          echo "=== 尝试方法1: 直接使用当前目录构建 ==="
-          # 修改参数传递方式，确保SHIELD和ZMK_CONFIG正确初始化
-          if west build -b nrfmicro_13 \
-              -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config"; then
-            echo "构建成功！"
-            exit 0
-          fi
-          # 显示详细错误
-          echo "尝试方法1失败，显示详细错误："
-          west build -b nrfmicro_13 \
-              -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config" || true
-
-          # 2. 尝试使用zephyr/samples目录作为构建源（如果存在）
-          echo "=== 尝试方法2: 使用zephyr/samples目录构建 ==="
-          if [ -d "zephyr/samples" ]; then
-            # 寻找可能的基础示例
-            SAMPLE_DIR=$(find zephyr/samples -type d -name "*application*" -o -name "*basic*" | head -n 1)
-            if [ -n "$SAMPLE_DIR" ]; then
-              echo "找到示例目录: $SAMPLE_DIR"
-              if west build -b nrfmicro_13 -s "$SAMPLE_DIR" \
-                -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config"; then
-                echo "构建成功！"
-                exit 0
-              fi
-            fi
-          fi
-
-          # 3. 创建最小化的应用结构进行构建
-          echo "=== 尝试方法3: 创建最小化应用结构 ==="
-          mkdir -p minimal_app/src
-
-          # 创建最小的main.c文件
-          echo "#include <zephyr/kernel.h>\n#include <zephyr/sys/printk.h>\n\nvoid main(void) {\n    printk(\"Hello from K30 Keyboard!\\n\");\n}\n" > minimal_app/src/main.c
-
-          # 创建最小的CMakeLists.txt
-          echo "cmake_minimum_required(VERSION 3.13.1)\nfind_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})\nproject(k30-keyboard)\ntarget_sources(app PRIVATE src/main.c)\n" > minimal_app/CMakeLists.txt
-
-          # 创建最小的prj.conf
-          echo "CONFIG_SHIELD=k30\nCONFIG_ZMK_USB_LOGGING=y\nCONFIG_LOG=y\n" > minimal_app/prj.conf
-
-          if west build -b nrfmicro_13 -s minimal_app \
-              -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config"; then
-            echo "构建成功！"
-            exit 0
-          fi
-
-          # 4. 尝试直接使用zephyr目录进行构建
-          echo "=== 尝试方法4: 直接使用zephyr目录构建 ==="
-          if [ -d "zephyr" ]; then
-            mkdir -p zephyr_build
-            cd zephyr_build
-            if west build -b nrfmicro_13 \
-                -- -DSHIELD=k30 -DZMK_CONFIG="$GITHUB_WORKSPACE/config"; then
-              echo "构建成功！"
-              exit 0
-            fi
-            cd ..
-          fi
-
-          # 显示详细的错误诊断信息
-          echo "=== 构建失败！详细诊断信息 ==="
-          echo "检查west配置:"
-          west config --list 2>/dev/null || echo "无法获取west配置"
-
-          echo "检查环境变量:"
-          env | grep -E "ZEPHYR|PATH"
-
-          echo "检查构建目录内容:"
-          if [ -d "build" ]; then
-            ls -la build/
-            if [ -f "build/CMakeCache.txt" ]; then
-              echo "CMakeCache.txt 前50行:"
-              head -n 50 build/CMakeCache.txt
-            fi
-            if [ -f "build/CMakeFiles/CMakeError.log" ]; then
-              echo "CMake错误日志:"
-              cat build/CMakeFiles/CMakeError.log
-            fi
-            if [ -d "build/zephyr" ]; then
-              ls -la build/zephyr/
-              if [ -f "build/zephyr/build.log" ]; then
-                echo "构建日志最后200行:"
-                tail -n 200 build/zephyr/build.log
-              fi
-            fi
-          fi
-
-          exit 1
-
-      - name: Verify Build Output
-        run: |
-          echo "检查构建输出..."
-          # 查找所有可能的固件文件位置
-          FIRMWARE_FILES=$(find . -name "zmk.hex" -o -name "zmk.uf2")
-
-          if [ -z "$FIRMWARE_FILES" ]; then
-            echo "错误: 未找到固件文件!"
-            # 检查标准构建目录是否存在
-            if [ -d "build/zephyr" ]; then
-              echo "构建目录内容:"
-              ls -la build/zephyr/
-              # 显示构建日志以帮助调试
-              if [ -f "build/zephyr/build.log" ]; then
-                echo "构建日志内容:"
-                tail -n 100 build/zephyr/build.log
-              fi
-            else
-              echo "构建目录不存在，检查其他可能的位置..."
-              find . -name "build" -type d | xargs ls -la 2>/dev/null || echo "未找到构建目录"
-            fi
-            exit 1
-          else
-            echo "找到固件文件:"
-            echo "$FIRMWARE_FILES"
-            # 显示固件文件的详细信息
-            for file in $FIRMWARE_FILES; do
-              echo "文件信息: $file"
-              ls -lh "$file"
-            done
-          fi
+          west build -b nrfmicro_13 -s app -- -DSHIELD=k30
 
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
-          name: k30-usb-logging-firmware
-          path: build/zephyr/zmk.uf2
+          name: k30-full-firmware
+          path: zmk/build/zephyr/zmk.uf2
