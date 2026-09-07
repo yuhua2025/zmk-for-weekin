@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 #include <dt-bindings/zmk/matrix_transform.h>
+#include <dt-bindings/i2c/i2c.h>
 
 / {
 	chosen {
@@ -34,10 +35,19 @@
 	};
 };
 
+&pinctrl {
+	k30_i2c: k30_i2c {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 0, 20)>,
+				<NRF_PSEL(TWIM_SCL, 0, 17)>;
+		};
+	};
+};
+
 &i2c0 {
 	status = "okay";
-	sda-pin = <20>;
-	scl-pin = <17>;
+	pinctrl-0 = <&k30_i2c>;
+	clock-frequency = <I2C_BITRATE_STANDARD>;
 
 	oled: ssd1306@3c {
 		compatible = "solomon,ssd1306fb";
